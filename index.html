@@ -1,1 +1,1222 @@
 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dating App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff4757;
+            --primary-dark: #e84142;
+            --success: #2ed573;
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --text: #2f3542;
+            --text-light: #747d8c;
+            --border: #dfe4ea;
+            --shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Telegram Theme Support */
+        body.tg-dark {
+            --bg: #1c1c1d;
+            --card-bg: #2c2c2e;
+            --text: #ffffff;
+            --text-light: #8e8e93;
+            --border: #3a3a3c;
+        }
+
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding-bottom: 80px;
+        }
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .header-icon {
+            font-size: 24px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--primary);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: var(--text-light);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Profile Form */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--card-bg);
+            color: var(--text);
+            transition: border-color 0.2s;        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .photo-upload {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--card-bg);
+        }
+
+        .photo-upload:hover {
+            border-color: var(--primary);
+            background: rgba(255, 71, 87, 0.05);
+        }
+
+        .photo-upload img {
+            max-width: 150px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .photo-upload.has-photo img {
+            display: block;
+        }
+
+        .photo-upload.has-photo .upload-text {
+            display: none;
+        }
+
+        /* Cards */
+        .card-stack {
+            position: relative;
+            height: 500px;
+            margin: 20px 0;
+        }
+
+        .profile-card {            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .profile-card.swipe-left {
+            transform: translateX(-150%) rotate(-20deg);
+            opacity: 0;
+        }
+
+        .profile-card.swipe-right {
+            transform: translateX(150%) rotate(20deg);
+            opacity: 0;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-info {
+            padding: 20px;
+        }
+
+        .card-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .card-age {
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        .card-bio {
+            margin-top: 15px;
+            color: var(--text-light);
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .card-distance {            display: inline-block;
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .action-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .btn-pass {
+            background: var(--card-bg);
+            color: #ff6b6b;
+            border: 2px solid #ff6b6b;
+        }
+
+        .btn-like {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+        }
+
+        .btn-super {
+            background: linear-gradient(135deg, #3742fa, #5352ed);
+            color: white;            width: 50px;
+            height: 50px;
+            font-size: 22px;
+            align-self: center;
+        }
+
+        /* Matches List */
+        .matches-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .match-item {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .match-item:hover {
+            background: rgba(255, 71, 87, 0.05);
+        }
+
+        .match-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 3px solid var(--primary);
+        }
+
+        .match-info {
+            flex: 1;
+        }
+
+        .match-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 3px;
+        }
+
+        .match-last-message {
+            color: var(--text-light);
+            font-size: 13px;
+            white-space: nowrap;            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .match-time {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 140px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message.mine {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.theirs {
+            align-self: flex-start;
+            background: var(--card-bg);
+            color: var(--text);
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .chat-input {            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid var(--border);
+            border-radius: 25px;
+            font-size: 15px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chat-input button {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-light);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 5px 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 3px;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        /* Match Modal */
+        .modal {
+            display: none;            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 300px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .match-modal-title {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .match-modal-subtitle {
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .match-avatars {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .match-avatar-modal {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Hidden file input */
+        #photo-input {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 360px) {
+            .card-image {
+                height: 280px;            }
+            .action-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="loading">
+            <div class="spinner"></div>
+            <p>Загрузка...</p>
+        </div>
+
+        <!-- Main App -->
+        <div id="main-app" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <h1>💕 Dating</h1>
+                <div class="header-icon" onclick="showScreen('matches-screen')">
+                    💬
+                    <span id="matches-badge" class="badge" style="display: none;">0</span>
+                </div>
+            </div>
+
+            <div class="app-container">
+                <!-- Profile Setup Screen -->
+                <div id="profile-screen" class="screen">
+                    <h2 style="margin-bottom: 20px; text-align: center;">Создайте профиль</h2>
+                    
+                    <div class="form-group">
+                        <label>Фото профиля *</label>
+                        <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+                            <span class="upload-text">📷 Нажмите для загрузки</span>
+                            <img id="photo-preview" alt="Preview">
+                        </div>
+                        <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Имя *</label>
+                        <input type="text" id="name-input" class="form-control" placeholder="Ваше имя">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Возраст *</label>
+                        <input type="number" id="age-input" class="form-control" placeholder="18" min="18" max="99">                    </div>
+
+                    <div class="form-group">
+                        <label>Пол *</label>
+                        <select id="gender-input" class="form-control">
+                            <option value="male">Мужской</option>
+                            <option value="female">Женский</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Кого ищете *</label>
+                        <select id="looking-input" class="form-control">
+                            <option value="female">Девушку</option>
+                            <option value="male">Парня</option>
+                            <option value="both">Всех</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>О себе *</label>
+                        <textarea id="bio-input" class="form-control" placeholder="Расскажите о себе..."></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveProfile()">
+                        ✨ Создать профиль
+                    </button>
+                </div>
+
+                <!-- Swipe Screen -->
+                <div id="swipe-screen" class="screen active">
+                    <div id="cards-container" class="card-stack">
+                        <!-- Cards will be inserted here -->
+                    </div>
+                    
+                    <div id="no-users" class="empty-state" style="display: none;">
+                        <div class="empty-state-icon">😢</div>
+                        <h3>Никого не найдено</h3>
+                        <p>Загляните позже, возможно появятся новые люди!</p>
+                        <button class="btn btn-secondary" onclick="loadFeed()" style="margin-top: 15px;">
+                            🔄 Обновить
+                        </button>
+                    </div>
+
+                    <div class="action-buttons" id="action-buttons">
+                        <button class="action-btn btn-pass" onclick="swipe('left')">✕</button>
+                        <button class="action-btn btn-super" onclick="swipe('super')">★</button>
+                        <button class="action-btn btn-like" onclick="swipe('right')">♥</button>
+                    </div>
+                </div>
+                <!-- Matches Screen -->
+                <div id="matches-screen" class="screen">
+                    <h2 style="margin-bottom: 15px;">Ваши матчи</h2>
+                    <div id="matches-list" class="matches-list">
+                        <!-- Matches will be inserted here -->
+                    </div>
+                    <div id="no-matches" class="empty-state">
+                        <div class="empty-state-icon">💔</div>
+                        <h3>Пока нет матчей</h3>
+                        <p>Лайкайте людей, чтобы найти свою пару!</p>
+                    </div>
+                </div>
+
+                <!-- Chat Screen -->
+                <div id="chat-screen" class="screen" style="padding: 0;">
+                    <div class="header" style="position: relative;">
+                        <button onclick="showScreen('matches-screen')" style="background: none; border: none; font-size: 24px; cursor: pointer;">←</button>
+                        <h1 id="chat-partner-name" style="position: absolute; left: 50%; transform: translateX(-50%);">Чат</h1>
+                        <div style="width: 24px;"></div>
+                    </div>
+                    <div class="chat-container">
+                        <div id="chat-messages" class="chat-messages">
+                            <!-- Messages will be inserted here -->
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="message-input" placeholder="Напишите сообщение..." onkeypress="if(event.key==='Enter')sendMessage()">
+                            <button onclick="sendMessage()">➤</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Profile Screen -->
+                <div id="my-profile-screen" class="screen">
+                    <h2 style="margin-bottom: 20px;">Мой профиль</h2>
+                    <div id="my-profile-view">
+                        <!-- Profile info will be inserted here -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="editProfile()" style="margin-top: 15px;">
+                        ✏️ Редактировать
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteProfile()" style="margin-top: 10px; background: #ff6b6b; color: white; border: none;">
+                        🗑️ Удалить профиль
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="bottom-nav" id="bottom-nav">
+                <div class="nav-item active" onclick="showScreen('swipe-screen'); updateNav(this);">                    <span class="nav-icon">🔥</span>
+                    <span>Поиск</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('matches-screen'); updateNav(this); loadMatches();">
+                    <span class="nav-icon">💬</span>
+                    <span>Матчи</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('my-profile-screen'); updateNav(this); loadMyProfile();">
+                    <span class="nav-icon">👤</span>
+                    <span>Профиль</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match Modal -->
+        <div id="match-modal" class="modal">
+            <div class="modal-content">
+                <div class="match-modal-title">It's a Match! 🎉</div>
+                <div class="match-modal-subtitle">Вы понравились друг другу!</div>
+                <div class="match-avatars">
+                    <img id="modal-user-photo" class="match-avatar-modal" src="" alt="You">
+                    <img id="modal-match-photo" class="match-avatar-modal" src="" alt="Match">
+                </div>
+                <button class="btn btn-primary" onclick="openChatFromModal()">💬 Написать</button>
+                <button class="btn btn-secondary" onclick="closeMatchModal()" style="margin-top: 10px;">Продолжить</button>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="toast">
+            <span id="toast-icon">✓</span>
+            <span id="toast-message">Сообщение</span>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const API_URL = window.location.origin + '/api';
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Apply Telegram theme
+        if (tg.colorScheme === 'dark') {
+            document.body.classList.add('tg-dark');
+        }
+
+        let currentUser = null;
+        let currentFeed = [];
+        let currentCardIndex = 0;
+        let currentMatchId = null;        let currentPartnerId = null;
+        let messagePolling = null;
+
+        // --- INIT ---
+        async function init() {
+            try {
+                const formData = new FormData();
+                formData.append('init_data', tg.initData);
+                
+                const res = await fetch(`${API_URL}/auth`, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.detail);
+                
+                currentUser = data;
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                
+                if (data.is_registered) {
+                    showScreen('swipe-screen');
+                    loadFeed();
+                    updateMatchesBadge();
+                } else {
+                    showScreen('profile-screen');
+                    document.getElementById('bottom-nav').style.display = 'none';
+                }
+            } catch (e) {
+                showToast('❌ Ошибка: ' + e.message);
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            // Hide nav on chat screen
+            if (screenId === 'chat-screen') {
+                document.getElementById('bottom-nav').style.display = 'none';
+            } else if (currentUser?.is_registered) {
+                document.getElementById('bottom-nav').style.display = 'flex';
+            }
+        }
+
+        function updateNav(element) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        // --- PROFILE ---        let selectedPhoto = null;
+
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedPhoto = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById('photo-preview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.querySelector('.photo-upload').classList.add('has-photo');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('name-input').value.trim();
+            const age = parseInt(document.getElementById('age-input').value);
+            const gender = document.getElementById('gender-input').value;
+            const looking = document.getElementById('looking-input').value;
+            const bio = document.getElementById('bio-input').value.trim();
+
+            if (!name || !age || !bio || !selectedPhoto) {
+                showToast('❌ Заполните все поля и добавьте фото');
+                return;
+            }
+
+            if (age < 18) {
+                showToast('❌ Вам должно быть 18+');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('init_data', tg.initData);
+            formData.append('name', name);
+            formData.append('age', age);
+            formData.append('gender', gender);
+            formData.append('looking_for', looking);
+            formData.append('bio', bio);
+            formData.append('photo', selectedPhoto);
+
+            try {
+                const res = await fetch(`${API_URL}/profile`, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentUser.is_registered = true;
+                    document.getElementById('bottom-nav').style.display = 'flex';                    showScreen('swipe-screen');
+                    loadFeed();
+                    showToast('✅ Профиль создан!');
+                } else {
+                    showToast('❌ Ошибка: ' + data.detail);
+                }
+            } catch (e) {
+                showToast('❌ Ошибка сети');
+            }
+        }
+
+        async function loadMyProfile() {
+            try {
+                const res = await fetch(`${API_URL}/profile/me`, {
+                    headers: { 'init_data': tg.initData }
+                });
+                const profile = await res.json();
+                
+                const html = `
+                    <div class="card-info" style="text-align: center;">
+                        <img src="${API_URL}${profile.photo_url}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">
+                        <h2>${profile.name}, ${profile.age}</h2>
+                        <p style="color: var(--text-light); margin: 10px 0;">${profile.bio}</p>
+                        <div class="card-distance">Ищет: ${profile.looking_for === 'female' ? 'Девушку' : profile.looking_for === 'male' ? 'Парня' : 'Всех'}</div>
+                    </div>
+                `;
+                document.getElementById('my-profile-view').innerHTML = html;
+            } catch (e) {
+                showToast('❌ Ошибка загрузки профиля');
+            }
+        }
+
+        function editProfile() {
+            showScreen('profile-screen');
+            // Pre-fill form could be added here
+        }
+
+        async function deleteProfile() {
+            if (!confirm('Вы уверены? Это действие нельзя отменить.')) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/profile`, {
+                    method: 'DELETE',
+                    headers: { 'init_data': tg.initData }
+                });
+                if (res.ok) {
+                    tg.close();
+                }
+            } catch (e) {
+                showToast('❌ Ошибка удаления');            }
+        }
+
+        // --- SWIPE FEED ---
+        async function loadFeed() {
+            try {
+                const res = await fetch(`${API_URL}/users/feed`, {
+                    headers: { 'init_data': tg.initData }
+                });
+                currentFeed = await res.json();
+                currentCardIndex = 0;
+                renderCards();
+            } catch (e) {
+                showToast('❌ Ошибка загрузки');
+            }
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cards-container');
+            const noUsers = document.getElementById('no-users');
+            const actions = document.getElementById('action-buttons');
+            
+            container.innerHTML = '';
+            
+            if (currentFeed.length === 0) {
+                noUsers.style.display = 'block';
+                actions.style.display = 'none';
+                return;
+            }
+            
+            noUsers.style.display = 'none';
+            actions.style.display = 'flex';
+            
+            // Render top card only for performance
+            const user = currentFeed[currentCardIndex];
+            if (user) {
+                const card = document.createElement('div');
+                card.className = 'profile-card';
+                card.id = 'current-card';
+                card.innerHTML = `
+                    <img src="${API_URL}${user.photo_url}" class="card-image" alt="${user.name}">
+                    <div class="card-info">
+                        <div class="card-name">${user.name}, <span class="card-age">${user.age}</span></div>
+                        <div class="card-bio">${user.bio}</div>
+                        <div class="card-distance">📍 ${user.distance}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+                
+                // Add swipe gestures                addSwipeGestures(card);
+            }
+        }
+
+        function addSwipeGestures(card) {
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+
+            card.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+            });
+
+            card.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                currentX = e.touches[0].clientX;
+                const diff = currentX - startX;
+                const rotation = diff * 0.1;
+                card.style.transform = `translateX(${diff}px) rotate(${rotation}deg)`;
+            });
+
+            card.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                const diff = currentX - startX;
+                
+                if (diff > 100) {
+                    swipe('right');
+                } else if (diff < -100) {
+                    swipe('left');
+                } else {
+                    card.style.transform = '';
+                }
+            });
+        }
+
+        async function swipe(direction) {
+            if (currentFeed.length === 0) return;
+            
+            const card = document.getElementById('current-card');
+            if (!card) return;
+
+            const user = currentFeed[currentCardIndex];
+            const action = direction === 'left' ? 'pass' : 'like';
+
+            // Animate
+            if (direction === 'left') {
+                card.classList.add('swipe-left');
+            } else if (direction === 'right') {                card.classList.add('swipe-right');
+            }
+
+            // Send to API
+            try {
+                const formData = new FormData();
+                formData.append('init_data', tg.initData);
+                formData.append('target_id', user.id);
+                formData.append('action', action);
+
+                const res = await fetch(`${API_URL}/like`, { method: 'POST', body: formData });
+                const result = await res.json();
+
+                if (result.match) {
+                    showMatchModal(user);
+                    updateMatchesBadge();
+                } else if (action === 'like') {
+                    showToast('❤️ Лайк отправлен');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+            // Next card
+            setTimeout(() => {
+                currentCardIndex++;
+                if (currentCardIndex >= currentFeed.length) {
+                    loadFeed();
+                } else {
+                    renderCards();
+                }
+            }, 300);
+        }
+
+        // --- MATCHES ---
+        async function loadMatches() {
+            try {
+                const res = await fetch(`${API_URL}/matches`, {
+                    headers: { 'init_data': tg.initData }
+                });
+                const matches = await res.json();
+                
+                const list = document.getElementById('matches-list');
+                const noMatches = document.getElementById('no-matches');
+                
+                if (matches.length === 0) {
+                    list.innerHTML = '';
+                    noMatches.style.display = 'block';
+                    return;
+                }                
+                noMatches.style.display = 'none';
+                list.innerHTML = matches.map(m => `
+                    <div class="match-item" onclick="openChat(${m.match_id}, ${m.user_id}, '${m.name}', '${API_URL}${m.photo_url}')">
+                        <img src="${API_URL}${m.photo_url}" class="match-avatar" alt="${m.name}">
+                        <div class="match-info">
+                            <div class="match-name">${m.name}</div>
+                            <div class="match-last-message">${m.last_message || 'Начните чат!'}</div>
+                        </div>
+                        <div class="match-time">${formatTime(m.created_at)}</div>
+                    </div>
+                `).join('');
+                
+                updateMatchesBadge(matches.length);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function updateMatchesBadge(count) {
+            const badge = document.getElementById('matches-badge');
+            if (count > 0) {
+                badge.textContent = count > 9 ? '9+' : count;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Только что';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'м';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'ч';
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        // --- MATCH MODAL ---
+        function showMatchModal(matchedUser) {
+            document.getElementById('modal-user-photo').src = currentUser.photo_url || 'https://via.placeholder.com/80';
+            document.getElementById('modal-match-photo').src = API_URL + matchedUser.photo_url;
+            document.getElementById('match-modal').classList.add('active');
+            
+            // Store for chat opening
+            currentPartnerId = matchedUser.id;
+        }
+        function closeMatchModal() {
+            document.getElementById('match-modal').classList.remove('active');
+        }
+
+        function openChatFromModal() {
+            closeMatchModal();
+            // Need to get match_id - for demo, reload matches and open first
+            loadMatches().then(() => {
+                setTimeout(() => {
+                    const firstMatch = document.querySelector('.match-item');
+                    if (firstMatch) firstMatch.click();
+                }, 500);
+            });
+        }
+
+        // --- CHAT ---
+        async function openChat(matchId, partnerId, partnerName, partnerPhoto) {
+            currentMatchId = matchId;
+            currentPartnerId = partnerId;
+            
+            document.getElementById('chat-partner-name').textContent = partnerName;
+            showScreen('chat-screen');
+            
+            await loadMessages();
+            
+            // Start polling for new messages
+            if (messagePolling) clearInterval(messagePolling);
+            messagePolling = setInterval(loadMessages, 3000);
+        }
+
+        async function loadMessages() {
+            if (!currentMatchId) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/messages/${currentMatchId}`, {
+                    headers: { 'init_data': tg.initData }
+                });
+                const messages = await res.json();
+                
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = messages.map(m => `
+                    <div class="message ${m.is_mine ? 'mine' : 'theirs'}">
+                        ${m.content}
+                    </div>
+                `).join('');
+                
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                console.error(e);
+            }        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+            
+            if (!content || !currentMatchId) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('init_data', tg.initData);
+                formData.append('match_id', currentMatchId);
+                formData.append('content', content);
+                
+                const res = await fetch(`${API_URL}/messages`, { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    input.value = '';
+                    await loadMessages();
+                } else {
+                    showToast('❌ Ошибка отправки');
+                }
+            } catch (e) {
+                showToast('❌ Ошибка сети');
+            }
+        }
+
+        // --- TOAST ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            document.getElementById('toast-icon').textContent = message.startsWith('❌') ? '✕' : '✓';
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- START ---
+        init();
+    </script>
+</body>
+</html>
